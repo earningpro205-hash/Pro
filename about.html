@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Earning Pro - Ultra Stable</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --dark-bg: #121212; --card-bg: #1e1e1e; --text-color: #ffffff; --success: #27ae60; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--dark-bg); color: var(--text-color); margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .hidden { display: none !important; }
+        header { padding: 15px; background: linear-gradient(to right, var(--secondary), var(--primary)); text-align: center; font-weight: 600; font-size: 1.3rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .container { padding: 20px; flex: 1; overflow-y: auto; padding-bottom: 90px; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
+        .balance-amount { font-size: 2.2rem; font-weight: 600; color: var(--primary); margin: 5px 0; }
+        
+        .video-player-container { 
+            width: 100%; position: relative; padding-bottom: 56.25%; height: 0; 
+            background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #444;
+        }
+        #youtube-player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        .main-btn { background: linear-gradient(to right, var(--secondary), var(--primary)); color: white; border: none; padding: 14px; width: 100%; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #333; z-index: 1000; }
+        .nav-item { text-align: center; color: #666; font-size: 0.75rem; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+        input { width: 100%; padding: 14px; margin: 10px 0; background: #2b2b2b; border: 1px solid #444; border-radius: 10px; color: white; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <header>EARNING PRO</header>
+
+    <div class="container">
+        <!-- Watch Tab -->
+        <div id="tab-home" class="tab-content">
+            <div class="card">
+                <div style="font-size: 0.8rem; color: #aaa;">Tokens Balance</div>
+                <div class="balance-amount" id="user-balance">₹0.00</div>
+                <div id="user-info" style="color: #888; font-size: 0.8rem;">Checking status...</div>
+            </div>
+
+            <div class="video-player-container">
+                <div id="youtube-player"></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <div class="card" style="text-align: center; margin:0; padding:10px;"><small>Watch Time</small><div id="stat-watch">0h 0m</div></div>
+                <div class="card" style="text-align: center; margin:0; padding:10px;"><small>Rate</small><div id="stat-rate" style="color: var(--success);">₹20 / 4Hr</div></div>
+            </div>
+        </div>
+
+        <!-- Wallet/Auth Tab -->
+        <div id="tab-wallet" class="tab-content hidden">
+            <div id="auth-section" class="card">
+                <div id="register-ui">
+                    <h3 style="text-align: center;">Join Now</h3>
+                    <input type="number" id="reg-mobile" placeholder="Mobile Number">
+                    <input type="password" id="reg-pass" placeholder="Password">
+                    <input type="text" id="reg-ref" placeholder="Referral Code (Optional)">
+                    <button class="main-btn" onclick="handleSignUp()">Sign Up</button>
+                    <p style="text-align: center; color:#aaa; cursor: pointer;" onclick="toggleAuth(false)">Already have an account? Login</p>
+                </div>
+                <div id="login-ui" class="hidden">
+                    <h3 style="text-align: center;">Login</h3>
+                    <input type="number" id="login-mobile" placeholder="Mobile Number">
+                    <input type="password" id="login-pass" placeholder="Password">
+                    <button class="main-btn" onclick="handleLogin()">Login</button>
+                    <p style="text-align: center; color:#aaa; cursor: pointer;" onclick="toggleAuth(true)">Don't have an account? Register</p>
+                </div>
+            </div>
+            
+            <div id="withdraw-section" class="card hidden">
+                <h3>Withdrawal</h3>
+                <input type="text" id="upi-id" placeholder="UPI ID">
+                <input type="number" id="draw-amount" placeholder="Amount">
+                <button class="main-btn" style="background: var(--success);" onclick="submitWithdrawal()">Request Payout</button>
+            </div>
+        </div>
+
+        <!-- Support Tab -->
+        <div id="tab-support" class="tab-content hidden">
+            <div class="card" style="text-align: center;">
+                <h3>Refer & Earn</h3>
+                <div id="ref-code-display" style="font-size: 1.8rem; color: var(--primary); font-weight: 600; margin: 15px 0;">------</div>
+                <p id="refer-note" style="font-size: 0.8rem; color: #aaa;">Earn ₹20 per referral!</p>
+                <button class="main-btn" onclick="shareApp()">Invite Friends</button>
+            </div>
+            <div class="card">
+                <h3>Support</h3>
+                <p>Email: <a href="mailto:earningpro205@gmail.com" style="color:var(--primary);">earningpro205@gmail.com</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home', this)"><i class="fas fa-play-circle"></i>Watch</div>
+        <div class="nav-item" onclick="switchTab('wallet', this)"><i class="fas fa-wallet"></i>Wallet</div>
+        <div class="nav-item" onclick="switchTab('support', this)"><i class="fas fa-headset"></i>Support</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtV3ttujPOsINxOhvK-kH1lOMPgTNsJQs",
+            authDomain: "earning-pro-3df08.firebaseapp.com",
+            databaseURL: "https://earning-pro-3df08-default-rtdb.firebaseio.com",
+            projectId: "earning-pro-3df08",
+            storageBucket: "earning-pro-3df08.firebasestorage.app",
+            messagingSenderId: "1011009026854",
+            appId: "1:1011009026854:web:069c8fe167b770d7a51fe7"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(), db = firebase.database();
+
+        let currentUser = null, userData = { balance: 0, watch_seconds: 0, referral_code: "" };
+        let appSettings = { rate: 20, vids: [], min: 300, refer_rate: 20, app_link: "" };
+        
+        // --- Fallback Video List ---
+        const backupVids = ["fBw86aEQpAI", "bORsBSm0YdQ", "pu9ONc5dsqI", "yTf4kwiDqDs", "xy8FnKDFVr4", "hbMVsEvmhBw", "b3dHSgA4XRs", "n2bsXUq8R3I", "pV7bu9_Y-_4"];
+        
+        let player = null, watchInterval = null, lastVid = "";
+
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-player', {
+                videoId: backupVids[0],
+                playerVars: { 'autoplay': 1, 'playsinline': 1, 'modestbranding': 1, 'rel': 0, 'origin': window.location.origin },
+                events: { 
+                    'onReady': () => { syncFirebaseVideos(); }, 
+                    'onStateChange': onPlayerStateChange,
+                    'onError': () => playNextVideo() // Skips Error 153 automatically
+                }
+            });
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) startEarning();
+            else stopEarning();
+            if (event.data == YT.PlayerState.ENDED) playNextVideo();
+        }
+
+        function syncFirebaseVideos() {
+            // Fetch Settings and Videos from Realtime Database
+            db.ref("appSettings/config").on("value", (snap) => {
+                if(snap.exists()) {
+                    appSettings = snap.val();
+                    document.getElementById('stat-rate').innerText = `₹${appSettings.rate} / 4Hr`;
+                    document.getElementById('refer-note').innerText = `Earn ₹${appSettings.refer_rate || 20} per referral!`;
+                }
+            });
+        }
+
+        function playNextVideo() {
+            // Mix Firebase videos with Backup, then filter to avoid repeat
+            let pool = (appSettings.vids && appSettings.vids.length > 0) ? appSettings.vids : backupVids;
+            let next = pool[Math.floor(Math.random() * pool.length)];
+            
+            let vidId = extractVideoID(next);
+            if(vidId === lastVid) vidId = extractVideoID(pool[0]); // Simple anti-repeat
+            
+            lastVid = vidId;
+            player.loadVideoById(vidId);
+        }
+
+        function extractVideoID(url) {
+            if (url.includes('v=')) return url.split('v=')[1].split('&')[0];
+            if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0];
+            return url;
+        }
+
+        // --- Earning Logic ---
+        function startEarning() {
+            if(!currentUser) return;
+            clearInterval(watchInterval);
+            watchInterval = setInterval(() => {
+                let r = (appSettings.rate || 20) / 14400; 
+                userData.balance += r;
+                userData.watch_seconds += 1;
+                if(userData.watch_seconds % 15 === 0) {
+                    db.ref("users/" + currentUser.uid).update({ balance: userData.balance, watch_seconds: userData.watch_seconds });
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        function stopEarning() { clearInterval(watchInterval); }
+
+        function updateUI() {
+            document.getElementById('user-balance').innerText = "₹" + (userData.balance || 0).toFixed(2);
+            let h = Math.floor(userData.watch_seconds / 3600), m = Math.floor((userData.watch_seconds % 3600) / 60);
+            document.getElementById('stat-watch').innerText = `${h}h ${m}m`;
+        }
+
+        // --- AUTH & DYNAMIC REFERRAL ---
+        async function handleSignUp() {
+            const m = document.getElementById('reg-mobile').value, p = document.getElementById('reg-pass').value, refCode = document.getElementById('reg-ref').value;
+            if(m.length < 10) return alert("Enter valid mobile number");
+            
+            try {
+                const res = await auth.createUserWithEmailAndPassword(m + "@earningpro.com", p);
+                const myReferralCode = Math.floor(100000 + Math.random() * 900000).toString(); 
+                
+                // 1. Referral Amount Check
+                if(refCode && refCode.length === 6) {
+                    const refUserQuery = await db.ref("users").orderByChild("referral_code").equalTo(refCode).once("value");
+                    if(refUserQuery.exists()) {
+                        const referrerUid = Object.keys(refUserQuery.val())[0];
+                        const bonusAmount = parseFloat(appSettings.refer_rate) || 20;
+                        
+                        // Referrer ke account mein balance add karna
+                        await db.ref("users/" + referrerUid + "/balance").transaction(current => (current || 0) + bonusAmount);
+                    }
+                }
+
+                await db.ref("users/" + res.user.uid).set({
+                    mobile: m, balance: 0, watch_seconds: 0, referral_code: myReferralCode, referred_by: refCode || ""
+                });
+                alert("Registration Successful!");
+            } catch (e) { alert(e.message); }
+        }
+
+        async function handleLogin() {
+            const m = document.getElementById('login-mobile').value, p = document.getElementById('login-pass').value;
+            try { await auth.signInWithEmailAndPassword(m + "@earningpro.com", p); } catch(e) { alert("Login Failed"); }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if(user) {
+                currentUser = user;
+                db.ref("users/" + user.uid).on("value", (s) => {
+                    if(s.exists()) {
+                        userData = s.val();
+                        document.getElementById('auth-section').classList.add('hidden');
+                        document.getElementById('withdraw-section').classList.remove('hidden');
+                        document.getElementById('ref-code-display').innerText = userData.referral_code;
+                        document.getElementById('user-info').innerText = "ID: " + userData.referral_code;
+                        updateUI();
+                    }
+                });
+            }
+        });
+
+        function shareApp() {
+            const link = appSettings.app_link || "https://earningpro.com/download";
+            const msg = `Download Earning Pro & Earn Money! 💰\n\nReferral Code: ${userData.referral_code}\nLink: ${link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+        }
+
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.remove('hidden');
+            el.classList.add('active');
+        }
+
+        function toggleAuth(reg) {
+            document.getElementById('register-ui').classList.toggle('hidden', !reg);
+            document.getElementById('login-ui').classList.toggle('hidden', reg);
+        }
+
+        async function submitWithdrawal() {
+            const upi = document.getElementById('upi-id').value, amt = parseFloat(document.getElementById('draw-amount').value);
+            if(!upi.includes('@') || amt < (appSettings.min || 300) || amt > userData.balance) return alert("Invalid Amount or UPI");
+            try {
+                await db.ref("users/" + currentUser.uid).update({ balance: userData.balance - amt });
+                await db.ref("withdrawals").push({ uid: currentUser.uid, upi, amount: amt, status: "Pending", timestamp: Date.now() });
+                alert("Withdrawal Requested!");
+            } catch (e) { alert(e.message); }
+        }
+    </script>
+</body>
+</html>
